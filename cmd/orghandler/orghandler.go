@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"strings"
 	"strconv"
+	"time"
+	"fmt"
 )
 
 const taskCreatedPrefix = "Created task "
@@ -40,10 +42,26 @@ func main() {
 	logger.Println(title)
 	logger.Println("")
 	logger.Println(body)
+	//taskwarriorAdd(logger, f, title, source, body)
+	nextcloudAdd(logger, f, title, source, body)
+}
 
+
+func nextcloudAdd(logger *log.Logger, f *os.File,  title string,  source string, body string) {
+	ncFile, err := os.OpenFile("c:/Users/mark/Nextcloud/todo/todo.txt", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	defer ncFile.Close()
+	date := time.Now().Format("2006-01-02")
+	fmt.Fprintln(ncFile,date, title, source, "+orgcapture" )
+	logger.Println("Task created")
+}
+
+func taskwarriorAdd(logger *log.Logger, f *os.File,  title string,  source string, body string) {
 	cmd := exec.Command("task", "add", title)
 	cmd.Stderr = f
-	out, err :=cmd.Output()
+	out, err := cmd.Output()
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -52,7 +70,7 @@ func main() {
 	if !strings.HasPrefix(strOut, taskCreatedPrefix) {
 		logger.Fatal("unexpected result")
 	}
-	strOut = strings.TrimPrefix(strOut , taskCreatedPrefix)
+	strOut = strings.TrimPrefix(strOut, taskCreatedPrefix)
 	taskId := strings.TrimRight(strOut, ".\n")
 	_, err = strconv.Atoi(taskId)
 	if err != nil {
@@ -60,7 +78,6 @@ func main() {
 	}
 	// Add url and body as annotation
 	annotateTask(logger, taskId, source)
-
 	if body != "" {
 		annotateTask(logger, taskId, body)
 	}
@@ -68,7 +85,6 @@ func main() {
 	result, _ := cmd.Output()
 	cmd.Wait()
 	logger.Println(string(result))
-
 }
 
 func annotateTask(logger *log.Logger, taskId string, annotation string)  {
