@@ -1,16 +1,15 @@
 package main
 
 import (
-	"path/filepath"
-	"os"
 	"log"
-	"github.com/kardianos/osext"
 	"net/url"
+	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"strconv"
-	"time"
-	"fmt"
+	"strings"
+
+	"github.com/kardianos/osext"
 )
 
 const taskCreatedPrefix = "Created task "
@@ -28,7 +27,7 @@ func main() {
 	}
 	defer f.Close()
 	logger := log.New(f, "", log.Ldate)
-	orgURL,err := url.Parse(os.Args[1])
+	orgURL, err := url.Parse(os.Args[1])
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -42,24 +41,26 @@ func main() {
 	logger.Println(title)
 	logger.Println("")
 	logger.Println(body)
-	//taskwarriorAdd(logger, f, title, source, body)
-	nextcloudAdd(logger, f, title, source, body)
+	taskwarriorAdd(logger, f, title, source, body)
+	//nextcloudAdd(logger, f, title, source, body)
 }
 
+//
+//func nextcloudAdd(logger *log.Logger, f *os.File,  title string,  source string, body string) {
+//	ncFile, err := os.OpenFile("/Users/mark.janssen/Nextcloud/todo/todo.txt", os.O_APPEND|os.O_WRONLY, 0644)
+//	if err != nil {
+//		logger.Fatal(err)
+//	}
+//	defer ncFile.Close()
+//	date := time.Now().Format("2006-01-02")
+//	fmt.Fprintln(ncFile,date, title, source, "+orgcapture" )
+//	logger.Println("Task created")
+//}
 
-func nextcloudAdd(logger *log.Logger, f *os.File,  title string,  source string, body string) {
-	ncFile, err := os.OpenFile("c:/Users/mark/Nextcloud/todo/todo.txt", os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer ncFile.Close()
-	date := time.Now().Format("2006-01-02")
-	fmt.Fprintln(ncFile,date, title, source, "+orgcapture" )
-	logger.Println("Task created")
-}
+const taskPath = "/usr/local/bin/task"
 
-func taskwarriorAdd(logger *log.Logger, f *os.File,  title string,  source string, body string) {
-	cmd := exec.Command("task", "add", title)
+func taskwarriorAdd(logger *log.Logger, f *os.File, title string, source string, body string) {
+	cmd := exec.Command(taskPath, "add", title)
 	cmd.Stderr = f
 	out, err := cmd.Output()
 	if err != nil {
@@ -71,24 +72,24 @@ func taskwarriorAdd(logger *log.Logger, f *os.File,  title string,  source strin
 		logger.Fatal("unexpected result")
 	}
 	strOut = strings.TrimPrefix(strOut, taskCreatedPrefix)
-	taskId := strings.TrimRight(strOut, ".\n")
-	_, err = strconv.Atoi(taskId)
+	taskID := strings.TrimRight(strOut, ".\n")
+	_, err = strconv.Atoi(taskID)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	// Add url and body as annotation
-	annotateTask(logger, taskId, source)
+	annotateTask(logger, taskID, source)
 	if body != "" {
-		annotateTask(logger, taskId, body)
+		annotateTask(logger, taskID, body)
 	}
-	cmd = exec.Command("task", taskId, "sync")
+	cmd = exec.Command(taskPath, taskID, "sync")
 	result, _ := cmd.Output()
 	cmd.Wait()
 	logger.Println(string(result))
 }
 
-func annotateTask(logger *log.Logger, taskId string, annotation string)  {
-	cmd := exec.Command("task", taskId, "annotate", annotation)
+func annotateTask(logger *log.Logger, taskID string, annotation string) {
+	cmd := exec.Command(taskPath, taskID, "annotate", annotation)
 	result, err := cmd.Output()
 	if err != nil {
 		logger.Fatal(err)
