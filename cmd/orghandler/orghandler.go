@@ -57,7 +57,7 @@ func main() {
 //	logger.Println("Task created")
 //}
 
-const taskPath = "/usr/local/bin/task"
+const taskPath = "task"
 
 func taskwarriorAdd(logger *log.Logger, f *os.File, title string, source string, body string) {
 	cmd := exec.Command(taskPath, "add", title)
